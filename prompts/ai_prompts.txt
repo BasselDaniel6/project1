@@ -1,0 +1,19 @@
+Model: OpenAI Codex (GPT-5)
+
+1. Help me implement get_lineup_league_summary_stats in backend/app/helpers/lineups.py, making sure to follow the Backend Engineering instructions in the README.
+
+2. Verify the implementation against the exact Backend Engineering requirements: aggregate n-man lineups across all possessions; include players and summed offense/defense possession statistics; follow the sample JSON response structure; add performance metrics and backend features beyond lineup_size; and update requirements.txt if new dependencies are introduced.
+
+3. Model: GPT-6 (Codex; exact model variant not exposed to the assistant).
+Date: 2026-09-20
+Prompt:
+ok now lets do the frontend. here are the instructions so we are clear:
+
+### Frontend Engineering
+
+- The `lineups-summary` component, which is viewable at [http://localhost:4200/lineups-summary](http://localhost:4200/lineups-summary), makes a call to an API endpoint at `/api/v1/lineups` that returns metrics aggregated by lineups (default size is 5-man). Each row corresponds to a given lineup and their associated metrics across all possessions.
+- Within the `lineups-summary` component found in `frontend/src/app/lineups-summary/`, create a user interface for NBA coaches and executives that displays the data returned from the API. You should incorporate any additional features you implemented into the backend on the user interface here. We are looking for a thoughtful, creative, and useful interface.
+- Feel free to import additional modules of your choice, and design the interface however you wish. Just make sure that the `package.json` and `package-lock.json` are updated accordingly.
+- Upon completion of the Frontend Engineering deliverable, please attempt to deploy your project following the [deployment instructions](https://github.com/thunder-applications/swe-intern-technical-project-2027-basseldaniel6-11d6dc4a#deploying-through-railway) below and upload to this repo screenshots or screen captures that demonstrate your UI.
+
+again, make sure you follow all instructions and implement them cleanly. no need for too much extra complexity.

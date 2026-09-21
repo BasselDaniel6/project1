@@ -1,21 +1,113 @@
-@use '../vars.scss' as *;
-
 :host {
   display: block;
-  font-family: Roboto, 'Helvetica Neue', sans-serif;
   min-height: 100%;
 }
-
-#app-header {
-  width: 100%;
-  height: 60px;
-  line-height: 60px;
-  background-color: $color-thunder-blue;
+.app-header {
+  background: #10283e;
   color: white;
-  font-size: 28px;
-  font-weight: 700;
-  text-transform: uppercase;
-  padding-left: 20px;
-  box-sizing: border-box;
-  letter-spacing: 0.02em;
+  padding: 0 40px;
+  min-height: 76px;
+  display: flex;
+  align-items: center;
+  gap: 55px;
+  border-bottom: 3px solid #007ac1;
+}
+.brand {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  text-decoration: none;
+  color: white;
+  font-size: 16px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+}
+.brand small {
+  display: block;
+  font-size: 7px;
+  letter-spacing: 0.15em;
+  margin-top: 5px;
+  color: #b0c6d9;
+  font-weight: 500;
+}
+.brand-mark {
+  background: #007ac1;
+  padding: 8px 12px;
+  border-bottom: 3px solid #ef8042;
+  font-size: 23px;
+  font-style: italic;
+  border-radius: 4px;
+}
+nav {
+  display: flex;
+  gap: 26px;
+  align-self: stretch;
+}
+nav a {
+  display: flex;
+  align-items: center;
+  color: #b4c6d6;
+  font-size: 12px;
+  text-decoration: none;
+  border-bottom: 3px solid transparent;
+  padding-top: 3px;
+}
+nav a.active {
+  color: white;
+  border-bottom-color: #f18b50;
+}
+nav a:hover {
+  color: white;
+}
+.header-caption {
+  margin-left: auto;
+  font-size: 9px;
+  letter-spacing: 0.14em;
+  color: #94aec3;
+}
+.header-caption span {
+  padding: 0 10px;
+  color: #50748f;
+}
+a:focus-visible {
+  outline: 3px solid #f18b50;
+  outline-offset: 4px;
+}
+.skip-link {
+  position: absolute;
+  top: -100px;
+  background: white;
+  color: #10283e;
+  padding: 12px;
+  z-index: 10;
+}
+.skip-link:focus {
+  top: 8px;
+  left: 8px;
+}
+@media (max-width: 850px) {
+  .app-header {
+    padding: 0 24px;
+    gap: 32px;
+  }
+  .header-caption {
+    display: none;
+  }
+}
+@media (max-width: 550px) {
+  .app-header {
+    flex-wrap: wrap;
+    padding: 18px 16px 0;
+    gap: 12px;
+  }
+  .brand {
+    width: 100%;
+  }
+  nav {
+    width: 100%;
+    gap: 24px;
+  }
+  nav a {
+    padding: 12px 0;
+  }
 }

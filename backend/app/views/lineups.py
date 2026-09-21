@@ -25,8 +25,7 @@ def _parse_int_query_param(request, key, default, minimum=None, maximum=None):
 
 
 def _get_lineup_query_options(request):
-    # Template for future query params:
-    # add options here and pass them through to helper functions.
+    sort_order = request.query_params.get('sort_order', 'desc').lower()
     return {
         'lineup_size': _parse_int_query_param(
             request,
@@ -34,6 +33,21 @@ def _get_lineup_query_options(request):
             default=5,
             minimum=1,
             maximum=5,
+        ),
+        'min_possessions': _parse_int_query_param(
+            request,
+            key='min_possessions',
+            default=0,
+            minimum=0,
+        ),
+        'sort_by': request.query_params.get('sort_by', 'total_possessions'),
+        'sort_order': sort_order if sort_order in {'asc', 'desc'} else 'desc',
+        'limit': _parse_int_query_param(
+            request,
+            key='limit',
+            default=5000,
+            minimum=1,
+            maximum=5000,
         ),
     }
 

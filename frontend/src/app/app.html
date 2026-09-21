@@ -1,24 +1,30 @@
-<div id="app-header">OKC Technical Assessment</div>
-<nav mat-tab-nav-bar [tabPanel]="tabPanel">
+<a class="skip-link" [href]="router.url.split('#')[0] + '#main-content'"
+  >Skip to content</a
+>
+<header class="app-header">
   <a
-    mat-tab-link
+    class="brand"
     routerLink="/lineups-summary"
-    routerLinkActive
-    [active]="currentTab === tab.FRONTEND"
-    (click)="currentTab = tab.FRONTEND"
+    aria-label="Thunder lineup explorer home"
+    ><span class="brand-mark" aria-hidden="true">T</span
+    ><span>THUNDER<small>BASKETBALL OPERATIONS</small></span></a
   >
-    Frontend
-  </a>
-  <a
-    mat-tab-link
-    routerLink="/lineups-summary-api"
-    routerLinkActive
-    [active]="currentTab === tab.BACKEND"
-    (click)="currentTab = tab.BACKEND"
+  <nav aria-label="Main navigation">
+    <a
+      routerLink="/lineups-summary"
+      routerLinkActive="active"
+      ariaCurrentWhenActive="page"
+      >Lineup explorer</a
+    >
+    <a
+      routerLink="/lineups-summary-api"
+      routerLinkActive="active"
+      ariaCurrentWhenActive="page"
+      >API inspector</a
+    >
+  </nav>
+  <span class="header-caption"
+    >THE LINEUP LAB <span aria-hidden="true">/</span> 01</span
   >
-    Backend
-  </a>
-</nav>
-<mat-tab-nav-panel #tabPanel>
-  <router-outlet></router-outlet>
-</mat-tab-nav-panel>
+</header>
+<router-outlet></router-outlet>

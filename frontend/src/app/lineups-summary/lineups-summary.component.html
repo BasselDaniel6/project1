@@ -1,1 +1,522 @@
-<div class="placeholder">Place your content here!</div>
+<main class="workspace" id="main-content">
+  <header class="page-heading">
+    <div>
+      <p class="eyebrow">SCOUT. COMPARE. DECIDE.</p>
+      <h1>Lineup explorer<span>.</span></h1>
+      <p class="intro">
+        Find the combinations that make a difference on both ends of the floor.
+      </p>
+    </div>
+    <div class="context">
+      <span class="court-mark" aria-hidden="true"></span>
+      <div>
+        League-wide analysis<small>Possession-level data · 1–5 players</small>
+      </div>
+    </div>
+  </header>
+
+  <form
+    class="filters"
+    (ngSubmit)="load()"
+    #filterForm="ngForm"
+    aria-label="Lineup filters"
+  >
+    <label
+      >Lineup size<select name="size" [(ngModel)]="filters.lineup_size">
+        @for (size of [5, 4, 3, 2, 1]; track size) {
+          <option [ngValue]="size">
+            {{ size }} {{ size === 1 ? "player" : "players" }}
+          </option>
+        }
+      </select></label
+    >
+    <label
+      >Min. possessions<input
+        name="minimum"
+        type="number"
+        min="0"
+        step="1"
+        required
+        [(ngModel)]="filters.min_possessions"
+    /></label>
+    <label class="sort-filter"
+      >Sort by<select name="metric" [(ngModel)]="filters.sort_by">
+        @for (metric of sortMetrics; track metric.value) {
+          <option [value]="metric.value">{{ metric.label }}</option>
+        }
+      </select></label
+    >
+    <label
+      >Direction<select name="direction" [(ngModel)]="filters.sort_order">
+        <option value="desc">High to low</option>
+        <option value="asc">Low to high</option>
+      </select></label
+    >
+    <label
+      >Result limit<select name="limit" [(ngModel)]="filters.limit">
+        @for (limit of [25, 50, 100, 500, 5000]; track limit) {
+          <option [ngValue]="limit">{{ limit | number }} lineups</option>
+        }
+      </select></label
+    >
+    <button class="primary" type="submit" [disabled]="filterForm.invalid">
+      Apply filters <span aria-hidden="true">→</span>
+    </button>
+    <button class="reset" type="button" (click)="reset()">Reset</button>
+  </form>
+
+  <div class="section-label">
+    <span>AT A GLANCE</span
+    ><small>Leaders within the returned, searched lineups</small>
+  </div>
+  <section class="highlights" aria-label="Lineup leaders">
+    @for (card of highlights(); track card.key) {
+      <button
+        class="highlight"
+        type="button"
+        [disabled]="!card.row"
+        (click)="card.row && selectHighlight(card.row)"
+      >
+        <div class="highlight-label">
+          {{ card.label }}<span aria-hidden="true">↗</span>
+        </div>
+        <div
+          class="highlight-value"
+          [class.positive]="card.key === 'net_rating' && (card.value ?? 0) > 0"
+        >
+          @if (card.value !== null) {
+            {{ card.key === "net_rating" && card.value > 0 ? "+" : ""
+            }}{{
+              (card.percent ? card.value * 100 : card.value) | number: "1.1-1"
+            }}{{ card.percent ? "%" : "" }}
+          } @else {
+            —
+          }
+          <small>{{ card.unit }}</small>
+        </div>
+        <p>
+          @if (card.row) {
+            {{ card.row.players[0].name }}
+            @if (card.row.players.length > 1) {
+              + {{ card.row.players.length - 1 }}
+              {{ card.row.players.length === 2 ? "teammate" : "teammates" }}
+            }
+          } @else {
+            No eligible lineup
+          }
+        </p>
+      </button>
+    }
+  </section>
+
+  <div class="analysis-layout" [attr.aria-busy]="loading()">
+    <section class="lineups-panel" aria-labelledby="lineups-heading">
+      <div class="panel-heading">
+        <div>
+          <h2 id="lineups-heading">
+            {{ applied().lineup_size }}-player lineups
+            <span class="count">{{ visibleRows().length | number }}</span>
+          </h2>
+          <p>Select a lineup to explore its performance.</p>
+        </div>
+        <label class="search"
+          ><span class="sr-only">Search players in returned lineups</span
+          ><svg aria-hidden="true" viewBox="0 0 24 24">
+            <circle cx="10" cy="10" r="6"></circle>
+            <path d="m15 15 5 5"></path></svg
+          ><input
+            type="search"
+            placeholder="Find a player…"
+            [ngModel]="search()"
+            (ngModelChange)="updateSearch($event)"
+        /></label>
+      </div>
+      @if (loading()) {
+        <div class="state" role="status">
+          <span class="spinner" aria-hidden="true"></span>
+          <h3>Loading lineup data</h3>
+          <p>Aggregating the combinations on the floor.</p>
+        </div>
+      } @else if (error()) {
+        <div class="state error" role="alert">
+          <h3>Unable to load lineups</h3>
+          <p>{{ error() }}</p>
+          <button class="primary" type="button" (click)="load()">
+            Try again
+          </button>
+        </div>
+      } @else if (!visibleRows().length) {
+        <div class="state" role="status">
+          <h3>No lineups found</h3>
+          <p>
+            {{
+              rows().length && search()
+                ? "Try another player name, or clear your search."
+                : "Lower the minimum possessions, or check that possession data has been imported."
+            }}
+          </p>
+          <button class="secondary" type="button" (click)="reset()">
+            Reset all filters
+          </button>
+        </div>
+      } @else {
+        <div
+          class="table-scroll"
+          tabindex="0"
+          role="region"
+          aria-label="Lineup rankings, scroll horizontally for all metrics"
+        >
+          <table class="lineup-table">
+            <caption class="sr-only">
+              Lineup statistics. Ratings are points per 100 possessions. Lower
+              defensive rating is better.
+            </caption>
+            <thead>
+              <tr>
+                <th scope="col" class="lineup-column">LINEUP</th>
+                <th
+                  scope="col"
+                  [attr.aria-sort]="sortState('total_possessions')"
+                >
+                  <button
+                    (click)="sort('total_possessions')"
+                    title="Total offensive and defensive possessions"
+                  >
+                    POSS {{ sortArrow("total_possessions") }}
+                  </button>
+                </th>
+                <th
+                  scope="col"
+                  [attr.aria-sort]="sortState('offensive_rating')"
+                >
+                  <button
+                    (click)="sort('offensive_rating')"
+                    title="Points scored per 100 offensive possessions; higher is better"
+                  >
+                    OFF RTG {{ sortArrow("offensive_rating") }}
+                  </button>
+                </th>
+                <th
+                  scope="col"
+                  [attr.aria-sort]="sortState('defensive_rating')"
+                >
+                  <button
+                    (click)="sort('defensive_rating')"
+                    title="Points allowed per 100 defensive possessions; lower is better"
+                  >
+                    DEF RTG {{ sortArrow("defensive_rating") }}
+                  </button>
+                </th>
+                <th scope="col" [attr.aria-sort]="sortState('net_rating')">
+                  <button
+                    (click)="sort('net_rating')"
+                    title="Offensive rating minus defensive rating; higher is better"
+                  >
+                    NET {{ sortArrow("net_rating") }}
+                  </button>
+                </th>
+                <th
+                  scope="col"
+                  [attr.aria-sort]="sortState('defensive_rebound_pct')"
+                >
+                  <button
+                    (click)="sort('defensive_rebound_pct')"
+                    title="Share of defensive rebound opportunities secured"
+                  >
+                    DREB% {{ sortArrow("defensive_rebound_pct") }}
+                  </button>
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (
+                row of pagedRows();
+                track lineupKey(row);
+                let index = $index
+              ) {
+                <tr [class.selected]="selected() === row">
+                  <td class="lineup-column">
+                    <button
+                      class="lineup-button"
+                      type="button"
+                      (click)="select(row)"
+                      [attr.aria-pressed]="selected() === row"
+                    >
+                      <span class="rank">{{
+                        page() * pageSize + index + 1 | number: "2.0-0"
+                      }}</span
+                      ><span
+                        ><span class="player-names">
+                          @for (
+                            player of row.players;
+                            track player.player_id;
+                            let last = $last
+                          ) {
+                            {{ player.name }}
+                            @if (!last) {
+                              <span class="separator"> / </span>
+                            }
+                          }</span
+                        ><small>Team {{ row.team_id.slice(0, 8) }}</small></span
+                      >
+                    </button>
+                  </td>
+                  <td class="possessions">
+                    {{ stat(row, "total_possessions") | number }}
+                  </td>
+                  <td>
+                    {{
+                      value(row, "offensive_rating") === null
+                        ? "—"
+                        : (value(row, "offensive_rating") | number: "1.1-1")
+                    }}
+                  </td>
+                  <td>
+                    {{
+                      value(row, "defensive_rating") === null
+                        ? "—"
+                        : (value(row, "defensive_rating") | number: "1.1-1")
+                    }}
+                  </td>
+                  <td>
+                    <span
+                      class="net"
+                      [class.positive]="(value(row, 'net_rating') ?? 0) > 0"
+                      [class.negative]="(value(row, 'net_rating') ?? 0) < 0"
+                      >{{ (value(row, "net_rating") ?? 0) > 0 ? "+" : ""
+                      }}{{
+                        value(row, "net_rating") === null
+                          ? "—"
+                          : (value(row, "net_rating") | number: "1.1-1")
+                      }}</span
+                    >
+                  </td>
+                  <td>
+                    {{
+                      value(row, "defensive_rebound_pct") === null
+                        ? "—"
+                        : (stat(row, "defensive_rebound_pct") * 100
+                            | number: "1.1-1") + "%"
+                    }}
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+        <footer class="table-footer">
+          <span
+            >Page {{ page() + 1 }} of {{ pageCount() }} ·
+            {{ visibleRows().length }} lineups</span
+          >
+          <div>
+            <button
+              type="button"
+              aria-label="Previous page"
+              [disabled]="page() === 0"
+              (click)="page.set(page() - 1)"
+            >
+              ←</button
+            ><button
+              type="button"
+              aria-label="Next page"
+              [disabled]="page() + 1 >= pageCount()"
+              (click)="page.set(page() + 1)"
+            >
+              →
+            </button>
+          </div>
+        </footer>
+      }
+      <p class="table-note">
+        Ratings: points per 100 possessions. Lower DEF RTG is better. Search
+        applies to returned results.
+        @if (rows().length === applied().limit) {
+          <strong>
+            Result limit reached; increase it to explore more lineups.</strong
+          >
+        }
+      </p>
+    </section>
+
+    <aside
+      class="detail-panel"
+      id="lineup-details"
+      aria-label="Selected lineup details"
+    >
+      @if (selected(); as row) {
+        <div class="detail-heading">
+          <p class="eyebrow">LINEUP SPOTLIGHT</p>
+          <span class="size-badge">{{ row.players.length }}-MAN</span>
+        </div>
+        <h2>The combination</h2>
+        <ul class="roster">
+          @for (
+            player of row.players;
+            track player.player_id;
+            let index = $index
+          ) {
+            <li>
+              <span class="player-number">{{
+                index + 1 | number: "2.0-0"
+              }}</span
+              >{{ player.name }}
+            </li>
+          }
+        </ul>
+        <p class="team-id" [title]="row.team_id">
+          Team {{ row.team_id.slice(0, 8) }} ·
+          {{ stat(row, "total_possessions") | number }} possessions
+        </p>
+        <div class="rating-strip">
+          @for (
+            rating of [
+              ["offensive_rating", "OFF RTG"],
+              ["defensive_rating", "DEF RTG"],
+              ["net_rating", "NET RTG"],
+            ];
+            track rating[0]
+          ) {
+            <div>
+              <small>{{ rating[1] }}</small
+              ><strong
+                [class.positive]="
+                  rating[0] === 'net_rating' && (value(row, rating[0]) ?? 0) > 0
+                "
+                >{{
+                  rating[0] === "net_rating" && (value(row, rating[0]) ?? 0) > 0
+                    ? "+"
+                    : ""
+                }}{{
+                  value(row, rating[0]) === null
+                    ? "—"
+                    : (value(row, rating[0]) | number: "1.1-1")
+                }}</strong
+              >
+            </div>
+          }
+        </div>
+        <h3 class="detail-section-title">What drives the result</h3>
+        <dl class="metric-list">
+          @for (metric of detailMetrics; track metric.key) {
+            <div>
+              <dt>{{ metric.label }}</dt>
+              <dd>
+                {{
+                  value(row, metric.key) === null
+                    ? "—"
+                    : (stat(row, metric.key) * (metric.percent ? 100 : 1)
+                        | number: "1.1-1") + (metric.percent ? "%" : "")
+                }}
+              </dd>
+            </div>
+          }
+        </dl>
+        <details class="box-score">
+          <summary>
+            Possession totals & shooting <span aria-hidden="true">+</span>
+          </summary>
+          <p>
+            Columns group events by the lineup’s role. Defensive points and
+            shooting describe the opponent; defensive rebounds and steals belong
+            to the defending team.
+          </p>
+          <table>
+            <caption class="sr-only">
+              Selected lineup totals by possession role
+            </caption>
+            <thead>
+              <tr>
+                <th scope="col">Metric</th>
+                <th scope="col">Offense</th>
+                <th scope="col">Defense</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (field of countingFields; track field[0]) {
+                <tr>
+                  <th scope="row">{{ field[1] }}</th>
+                  <td>{{ stat(row, "offensive_" + field[0]) | number }}</td>
+                  <td>{{ stat(row, "defensive_" + field[0]) | number }}</td>
+                </tr>
+              }
+              @for (
+                field of [
+                  ["fg_pct", "FG%"],
+                  ["fg2_pct", "2P%"],
+                  ["fg3_pct", "3P%"],
+                ];
+                track field[0]
+              ) {
+                <tr>
+                  <th scope="row">{{ field[1] }}</th>
+                  <td>
+                    {{
+                      value(row, "offensive_" + field[0]) === null
+                        ? "—"
+                        : (stat(row, "offensive_" + field[0]) * 100
+                            | number: "1.1-1") + "%"
+                    }}
+                  </td>
+                  <td>
+                    {{
+                      value(row, "defensive_" + field[0]) === null
+                        ? "—"
+                        : (stat(row, "defensive_" + field[0]) * 100
+                            | number: "1.1-1") + "%"
+                    }}
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </details>
+      } @else {
+        <div class="detail-empty">
+          <span class="court-mark" aria-hidden="true"></span>
+          <h2>A closer look</h2>
+          <p>
+            Select a lineup to see the players, efficiency metrics, and
+            possession totals.
+          </p>
+        </div>
+      }
+    </aside>
+  </div>
+
+  <details class="methodology">
+    <summary>How to read these numbers</summary>
+    <div>
+      <p>
+        <strong>Ratings.</strong> Offensive rating is points scored per 100
+        offensive possessions. Defensive rating is points allowed per 100
+        defensive possessions. Net rating is the difference. Higher net rating
+        is better.
+      </p>
+      <p>
+        <strong>Shooting & possession.</strong> Effective FG% gives extra weight
+        to made threes: (FGM + 0.5 × 3PM) / FGA. Turnover rate is turnovers /
+        offensive possessions. Assists per turnover divides offensive assists by
+        turnovers.
+      </p>
+      <p>
+        <strong>Rebounding.</strong> Offensive and defensive rebound percentages
+        use rebounds secured in that role divided by the corresponding rebound
+        opportunities.
+      </p>
+      <p>
+        <strong>Context.</strong> A dash means the denominator is zero or a
+        metric is unavailable. The API sorts its numeric values before the UI
+        marks these as unavailable. Lineups smaller than five share possessions
+        with other combinations; their counts must not be added together as a
+        league total. These are descriptive on-court results, without opponent
+        adjustment.
+      </p>
+    </div>
+  </details>
+  <footer class="workspace-footer">
+    <span
+      >THUNDER <span class="footer-divider">/</span> BASKETBALL OPERATIONS</span
+    ><span>Built around the possession.</span>
+  </footer>
+</main>
