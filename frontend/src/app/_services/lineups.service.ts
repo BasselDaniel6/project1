@@ -1,17 +1,20 @@
-import { HttpClient, HttpParams } from '@angular/common/http';
-import { Injectable } from '@angular/core';
-import { Observable } from 'rxjs';
-import { map } from 'rxjs/operators';
+import { HttpClient, HttpParams } from "@angular/common/http";
+import { Injectable } from "@angular/core";
+import { Observable } from "rxjs";
+import { map } from "rxjs/operators";
 
-import { BaseService } from './base.service';
+import { BaseService } from "./base.service";
+import { LineupQuery, LineupSummary } from "./lineup.types";
 
-@Injectable({ providedIn: 'root' })
+@Injectable({ providedIn: "root" })
 export class LineupsService extends BaseService {
   constructor(protected override http: HttpClient) {
     super(http);
   }
 
-  private buildQueryParams(queryParams: Record<string, string | number>): HttpParams {
+  private buildQueryParams(
+    queryParams: Record<string, string | number>,
+  ): HttpParams {
     return Object.entries(queryParams).reduce(
       (params, [key, value]) => params.set(key, String(value)),
       new HttpParams(),
@@ -28,19 +31,25 @@ export class LineupsService extends BaseService {
     return queryString ? `${endpoint}?${queryString}` : endpoint;
   }
 
-  getLineupsLeagueSummary(lineupSize: number = 5): Observable<{
+  getLineupsLeagueSummary(
+    lineupSize: number = 5,
+    options: Partial<Omit<LineupQuery, "lineup_size">> = {},
+  ): Observable<{
     endpoint: string;
-    apiResponse: unknown;
+    apiResponse: LineupSummary[];
   }> {
     const endpoint = `${this.baseUrl}/lineups`;
-    const queryParams = { lineup_size: lineupSize };
+    const queryParams = { lineup_size: lineupSize, ...options };
     const params = this.buildQueryParams(queryParams);
-    const displayedEndpointWithParams = this.buildDisplayedEndpointWithParams(endpoint, queryParams);
+    const displayedEndpointWithParams = this.buildDisplayedEndpointWithParams(
+      endpoint,
+      queryParams,
+    );
 
     return this.get(endpoint, params).pipe(
       map((data) => ({
         endpoint: displayedEndpointWithParams,
-        apiResponse: data,
+        apiResponse: data as LineupSummary[],
       })),
     );
   }
